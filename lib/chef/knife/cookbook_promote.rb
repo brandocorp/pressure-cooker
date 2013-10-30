@@ -24,11 +24,15 @@ class Chef
         end
 
         if environment.nil?
-          environment = determine_starting_environment(cookbook, version)
-        elsif !(validate_environment_version(previous_environment(environment), cookbook, version))
-          ui.fatal "Version was not found in the previous environment!"
-          exit 1
+          environment = determine_environment(cookbook, version)
+        elsif environment != 'development'
+          unless validate_environment_version(previous_environment(environment), cookbook, version)
+            ui.fatal "Version was not found in the previous environment!"
+            exit 1
+          end
         end
+
+        set_cookbook_version(environment, cookbook, version)
 
       end
 
@@ -64,9 +68,18 @@ class Chef
         environment_pipeline(environment, 'previous')
       end
 
+      def determine_environment(cookbook, version)
+        ['development', 'systemtest', 'production'].each do |env|
+          return env unless validate_environment_version(env, cookbook, version)
+        end
+        ui.info("Unable to promote #{cookbook}-#{version} in any environment!")
+        exit
+      end
+
       def validate_environment_version(environment, cookbook, version)
         environment_version = get_cookbook_version(environment, cookbook)
-        if version == environment_version
+        ui.debug "Found #{cookbook} #{environment_version} in #{environment}"
+        if "<= #{version}" == environment_version
           return true
         else
           return false
