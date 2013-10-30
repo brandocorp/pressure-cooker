@@ -72,13 +72,13 @@ class Chef
         ['development', 'systemtest', 'production'].each do |env|
           return env unless validate_environment_version(env, cookbook, version)
         end
-        ui.info("Unable to promote #{cookbook}-#{version} in any environment!")
+        ui.warn("Unable to promote #{cookbook}-#{version} in any environment!")
         exit
       end
 
       def validate_environment_version(environment, cookbook, version)
         environment_version = get_cookbook_version(environment, cookbook)
-        ui.debug "Found #{cookbook} #{environment_version} in #{environment}"
+        Chef::Log.debug "Found #{cookbook} #{environment_version} in #{environment}"
         if "<= #{version}" == environment_version
           return true
         else
