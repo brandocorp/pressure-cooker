@@ -19,7 +19,7 @@ class Chef
 
         if cookbook.nil? || version.nil?
           show_usage
-          ui.fatal("You must specify a cookbook name, version and an environment name")
+          ui.fatal("You must specify a cookbook name and version")
           exit 1
         end
 
@@ -77,6 +77,7 @@ class Chef
       end
 
       def validate_environment_version(environment, cookbook, version)
+        # @todo ensure we do not promote a lesser version into an environment
         environment_version = get_cookbook_version(environment, cookbook)
         Chef::Log.debug "Found #{cookbook} #{environment_version} in #{environment}"
         if "<= #{version}" == environment_version

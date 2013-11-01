@@ -2,27 +2,29 @@ require 'chef/knife'
 
 class Chef
   class Knife
-    class TicketAssign < Knife
+    class TicketComment < Knife
 
       deps do
         require 'chef/knife/api/jira'
       end
 
-      banner 'knife ticket assign TICKET [USERNAME] (options)'
+      banner 'knife ticket comment TICKET (options)'
 
       def run
         @key = @name_args[0]
-        @user = @name_args[1] || Jiralicious.username
         if @key.nil?
           show_usage
           ui.fatal("You must provide a ticket")
           exit 1
         end
         @ticket = Jira::API::Issue.new(@key)
-        @ticket.set_assignee @user
-        ui.info("Ticket #{@key} has been assigned to user #{@user}")
+        @ticket.comment "#{query_comment}"
+        ui.info("Your comment has been added to #{@key}")
+      end
+
+      def query_comment
+        ask("\nPlease enter your comments:")
       end
     end
   end
 end
-
