@@ -1,6 +1,5 @@
 # PressureCooker
-
-TODO: Write a gem description
+A collection of workflow helpers to ease the pain of Chef Development.
 
 ## Installation
 

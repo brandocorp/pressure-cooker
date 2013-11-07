@@ -1,11 +1,7 @@
 require "pressure_cooker/version"
+require "pressure_cooker/config"
 
-module PressureCooker
-  class << self
-    attr_reader :version
-  end
-  @version = PressureCooker::VERSION
-end
+class PressureCooker; end
 
 # Shorthand the Namespace
 PC = PressureCooker

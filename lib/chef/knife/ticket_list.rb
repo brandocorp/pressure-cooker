@@ -15,6 +15,7 @@ class Chef
         project = @name_args[0] || 'CHEF'
         issues = Jiralicious.search("project = #{project} AND resolution = Unresolved AND assignee = #{Jiralicious.username} ORDER BY priority DESC").issues_raw
         issue_hash = {}
+        # @todo need to figure out how to filter these to a specific status
         issues.each do |issue|
           issue_hash.store("#{issue['key']}", { 'status' => issue['fields']['status']['name'], 'summary' => issue['fields']['summary']})
         end
