@@ -1,0 +1,1 @@
+- Tag issues with `cookbook@version` to auto generate the CHANGELOG for a version [impossible at the moment](https://jira.atlassian.com/browse/JRA-27936)

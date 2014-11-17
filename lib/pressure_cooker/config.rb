@@ -7,25 +7,58 @@ class PressureCooker
 
     config_strict_mode true
 
-    git_name "Otto McMation"
-    git_email "Otto.McMation@apollogrp.edu"
-    git_provider :stash
+    # git config
+    config_context :git do
+      default :name, "Otto McMation"
+      default :email, "Otto.McMation@apollogrp.edu"
+      default :provider, "stash"
+    end
 
-    issue_tracker nil
+    configurable :issue_provider
+    configurable :ci_provider
+    configurable :vcs_provider
 
-    jira_username nil
-    jira_password nil
-    jira_url nil
+    # jira config
+    config_context :jira do
+      configurable :username
+      configurable :password
+      configurable :url
+    end
 
-    stash_dir "#{ENV['HOME']}/.stash"
-    stash_url "https://stash.apollogrp.edu"
-    stash_project nil
-    stash_repo nil
-    stash_oauth nil
+    # Stash config
+    config_context :stash do
+      default :dir, "#{ENV['HOME']}/.stash"
+      configurable :url
+      configurable :cookbook_project
+      configurable :databag_project
+      configurable :repo
+      configurable :oauth
+    end
 
-    github nil
-    bitbucket nil
-    gitlab nil
+    # Bamboo config
+    config_context :bamboo do
+      configurable :username
+      configurable :password
+      configurable :url
+    end
+
+    # Other vcs providers
+    configurable :github
+    configurable :bitbucket
+    configurable :gitlab
+
+    # Other CI providers
+    config_context :jenkins do
+      configurable :username
+      configurable :password
+      configurable :url
+    end
+
+    config_context :travisci do
+      configurable :username
+      configurable :password
+      configurable :url
+    end
 
   end
 end

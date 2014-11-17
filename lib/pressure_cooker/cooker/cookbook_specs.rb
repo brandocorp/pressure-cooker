@@ -1,8 +1,8 @@
 class PressureCooker
   class Cooker
-    class CookbookLint < Cooker
+    class CookbookSpecs < Cooker
 
-      banner 'cooker cookbook lint COOKBOOK'
+      banner 'cooker cookbook specs COOKBOOK'
 
       deps do
         require 'chef/knife'
@@ -16,24 +16,14 @@ class PressureCooker
         @cookbook_path = @config[:stash][:dir]
         @checkout_path = @cookbook_path + "/" + @cookbook_name
 
-        test_with_knife
-        test_with_foodcritic
+        run_specs
 
       end
 
-      def test_with_knife
-        ui.info "Testing cookbook with knife"
-        cmd = "knife cookbook test #{@cookbook_name} -o #{@cookbook_path}"
-        shell = Mixlib::ShellOut.new(cmd)
-        shell.run_command
-        shell.error!
-        ui.info shell.stdout.strip
-      end
-
-      def test_with_foodcritic
-        ui.info "Testing cookbook with foodcritic"
-        cmd = "foodcritic #{@checkout_path} -f correctness"
-        shell = Mixlib::ShellOut.new(cmd)
+      def run_specs
+        ui.info "Testing cookbook with Rspec"
+        cmd = "rspec"
+        shell = Mixlib::ShellOut.new(cmd, :cwd => @checkout_path)
         shell.run_command
         shell.error!
         ui.info shell.stdout.strip

@@ -4,6 +4,8 @@
 # loaded once.
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
+require 'simplecov'
+SimpleCov.start
 
 $:.unshift File.expand_path("../..", __FILE__)
 
@@ -13,6 +15,8 @@ require 'rspec/mocks'
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 $:.unshift(File.expand_path("../lib", __FILE__))
 $:.unshift(File.dirname(__FILE__))
+
+
 
 RSpec.configure do |config|
   config.treat_symbols_as_metadata_keys_with_true_values = true

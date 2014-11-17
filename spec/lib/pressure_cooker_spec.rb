@@ -3,9 +3,14 @@ require 'pressure_cooker'
 
 describe PressureCooker do
 
-  describe "#version" do
+  describe ".version" do
+
+    let(:version) do
+      PressureCooker::VERSION
+    end
+
     it "displays the version" do
-      expect(described_class.version).to equal(PressureCooker::VERSION)
+      PressureCooker.version.should == version
     end
   end
 

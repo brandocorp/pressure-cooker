@@ -10,22 +10,15 @@ class Jira
       attr_accessor :assignee, :comments, :status, :issuetype, :username
       attr_reader   :description, :key, :project, :status_id, :state, :summary
 
-      # Creates a new Issue object
-      # @param [string] the JIRA issue key
-      def initialize(key)
-        configure(
-          PressureCooker::Config[:jira_username],
-          PressureCooker::Config[:jira_password],
-          PressureCooker::Config[:jira_url]
-        )
-        get(key)
-        parse
+      # Gets an issue object from the api
+      def initialize(username, password, url)
+        configure(username, password, url)
+        return self
       end
 
-      # Gets an issue object from the api
-      def get(key)
-
-        @api = Jiralicious::Issue.find(key)
+      def get(issue_key)
+        @api = Jiralicious::Issue.find(issue_key)
+        parse
       end
 
       # Extract the relevant data from the issue's api data
@@ -39,6 +32,7 @@ class Jira
         @issuetype    = @api['fields']['issuetype']['id']
         @status       = Jira::API::Status.new(@key,  @api['fields']['status']['id'])
         @comments     = parse_comments(@api['fields']['comment']['comments'])
+        true
       end
 
       # Parses the comments for an issue into a hash.
@@ -76,14 +70,27 @@ class Jira
         @api.set_assignee '-1'
       end
 
-      def configure(username, password, uri)
+      # Delegate to the Jiralicious object
+      def method_missing(method, *args, &block)
+        if @api.respond_to?(method)
+          if args.empty?
+            @api.send(method)
+          else
+            @api.send(method, args)
+          end
+        else
+          super
+        end
+      end
+
+      def configure(username, password, url)
         Jiralicious.username = username
-        if Config::CONFIG['host_os'] =~ /darwin/
-          Jiralicious.password = get_keychain_password(username, uri[/https?:\/\/(.*)\/?/, 1]).strip
+        if RbConfig::CONFIG['host_os'] =~ /darwin/
+          Jiralicious.password = get_keychain_password(username, url[/https?:\/\/(.*)\/?/, 1]).strip
         else
           Jiralicious.password = password
         end
-        Jiralicious.uri = uri
+        Jiralicious.uri = url
       end
 
       def get_keychain_password(account, server)

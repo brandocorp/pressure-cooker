@@ -1,111 +1,100 @@
-# cooker cookbook save CHEF-999
-#   - commit and push changes to branch
-#   - log commit message to CHEF-999 comments
-#   * post to CI to upload cookbook and environment
+require 'pressure_cooker/cooker/cookbook_base'
 
 class PressureCooker
   class Cooker
     class CookbookSave < Cooker
 
-      banner 'cooker cookbook save COOKBOOK [TICKET] (options)'
+      include PressureCooker::Cooker::CookbookBase
+      include Git::API::Utils
 
-      deps do
-        require 'git'
-        require 'pressure_cooker/config'
-        require 'pressure_cooker/utils/jira'
-      end
-
-      option :message,
-        :short => "-m",
-        :long => "--message",
-        :description => "Add an optional message to the ticket operation",
-        :boolean => true
+      banner 'cooker cookbook save COOKBOOK TICKET (options)'
 
       def run
-        PressureCooker::Config.from_file("#{ENV['HOME']}/.cooker/config.rb")
-        PressureCooker::Config.merge!(config)
-        @cookbook_name = validate_param(@name_args[0], "a cookbook name")
-        @cookbook_path = PressureCooker::Config[:stash_dir]
-        @checkout_path = @cookbook_path + "/" + @cookbook_name
-        @git = Git.open(@checkout_path)
-        @editor = ENV['EDITOR'] || nil
-        @issue_key = validate_param(@name_args[1], "the issue key")
-        begin
-          @issue = Jira::API::Issue.new(@issue_key)
-        rescue Jiralicious::IssueNotFound
-          ui.fatal "Issue #{@issue_key} is invalid!"
-          exit 1
-        end
+        common_setup
+        checkout_path = @cookbook_path + "/" + @cookbook_name
+        @git = open_repo(checkout_path)
+        determine_local_changes
 
-        if config[:message]
+        if @config[:message]
           get_user_message
         end
 
-        # Commit all local changes to the repo
-        #  - Add untracked files
-        #  - Commit everything
         commit_changes
-        add_comment
-        run_ci_build
-
       end
 
       # ===============================
-      #   Step 1
+      #   Step 1a
       # ===============================
       # Commit all local changes and push them to Stash
+      #
       def commit_changes
-        @message = []
-        untracked = @git.status.untracked
-        added = @git.status.added
-        untracked.merge(added).each do |key,file|
-          msg = "added #{file.path}"
-          ui.info msg
-          @message << msg
-          @git.add file.path
-        end
-        @git.status.changed.each do |key,file|
-          @message << "modified #{file.path}"
-        end
-        @git.status.deleted.each do |key,file|
-          msg = "deleted #{file.path}"
-          ui.info msg
-          @git.remove file.path
-        end
-        ui.info "Commiting changes..."
+        @message = "commiting changes for #{@issue_key}"
         begin
-          @git.commit_all(@user_message ? @user_message : "changes for #{@issue_key}")
+          ui.info "Commiting changes..."
+          @git.commit_all(@user_message.empty? ? @message : @user_message)
+        rescue Git::GitExecuteError => e
+          error_message = e.message.split(':').last
+          ui.info error_message
+          unless error_message =~ /nothing to commit/
+            exit 1
+          end
+        end
+        push_changes
+      end
+
+      # ===============================
+      #   Step 1b
+      # ===============================
+      # Push all local changes to Stash. If no local
+      # changes are found this will be skipped.
+      #
+      def push_changes
+        begin
           ui.info "Pushing changes to repo..."
           @git.push(@git.remote, @issue_key)
+          add_comment
         rescue Git::GitExecuteError => e
-          ui.info e.message.split(':').last
+          error_message = e.message.split(':').last
+          ui.info error_message
           exit 1
         end
       end
 
-      # ===============================
-      #   Step 2
-      # ===============================
-      # Add a comment to the JIRA Issue
-      def add_comment
-        @issue.comment @user_message ? @user_message : @message.join("\n")
-      end
 
       # ===============================
-      #   Step 3
+      #   Step 1c
       # ===============================
+      # Add a comment to the JIRA Issue if there were
+      # changes made to the repo.
       #
-      def run_ci_build
-        ui.info "TODO: Setup CI Build to:\n - pull in cookbook source\n - upload to chef server\n - modify environment file"
+      def add_comment
+        @issue.comment @user_message.empty? ? @message : @user_message
+      end
+
+      def determine_local_changes
+        change_types = {
+          :untracked => :add,
+          :added => nil,
+          :changed => nil,
+          :deleted => :remove
+        }
+        change_types.each do |status,action|
+          files = @git.status.send(status)
+          files.each do |key,file|
+            ui.info "#{file.type || "?"} #{file.path}"
+            @git.send(action, file.path) if not action.nil? and File.exists? file.path
+          end
+          @git.add(:all=>true)
+        end
       end
 
       def git_status
         status = String.new
+        status << "\n\n\n\n# ========================================\n"
+        status << "#     Git Status Information\n"
+        status << "# ========================================\n"
         @git.status.each do |file|
-          if file.type != nil
-            status << "\n\n\n\n# ========================================\n"
-            status << "#     Git Status Information\n"
-            status << "# ========================================\n"
+          if file.type != nil and File.exists? file.path
             status << "# #{file.type}\t\t#{file.path}\n"
             @git.diff('HEAD', file.path).to_s.each_line do |line|
               status << "# " + line
@@ -113,25 +102,6 @@ class PressureCooker
           end
         end
         status
-      end
-
-      def get_user_message
-        require 'tempfile'
-        file = Tempfile.new("commit.tmp")
-        file.write git_status
-        file.fsync
-        file.close
-        `#{@editor} #{file.path}`
-        @user_message = file.open.read.gsub(/^#?$|#.*$/, '').strip
-      end
-
-      def validate_param(param, desc)
-        if param.nil? || param.empty?
-          show_usage
-          ui.error "You must provide #{desc}."
-          exit 1
-        end
-        param
       end
 
     end
